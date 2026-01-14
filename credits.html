@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crédits - Groupie Tracker</title>
+    <link rel="stylesheet" href="credits.css">
+</head>
+<body>
+    <!-- En-tête avec barre de recherche -->
+    <header class="header">
+        <div class="header"></div>
+        <div class="header-content">
+            <img src="public/images/palmier.png" alt="Palm tree" class="palm-left">
+            <nav class="nav-left">
+                <a href="index.html">home</a>
+                <a href="artists.html">artists</a>
+            </nav>
+            <h1 class="logo">GROUPIE TRACKER</h1>
+            <div class="header-right">
+                <!-- Bouton pour accéder à la carte -->
+                <a href="map.html" class="location-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
+                    </svg>
+                </a>
+                <!-- Barre de recherche qui redirige vers artistes -->
+                <div class="search-bar">
+                    <input type="text" placeholder="" id="searchInput" class="page-search-input">
+                    <button class="search-btn" id="searchBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <img src="public/images/palmier.png" alt="Palm tree" class="palm-right">
+        </div>
+    </header>
+
+    <!-- Contenu principal avec les crédits -->
+    <main class="main-content">
+        <img src="public/images/palmier.png" alt="" class="palm-bg palm-bg-left">
+        <img src="public/images/palmier.png" alt="" class="palm-bg palm-bg-right">
+        
+        <div class="credits-container">
+            <h2 class="credits-title">crédits</h2>
+            
+            <div class="credits-card">
+                <h3 class="section-title">remerciements</h3>
+                <p class="credits-text">
+                    merci à tous ceux qui ont contribué à ce projet.<br>
+                    ce site a été créé dans le cadre d'un projet pédagogique.<br>
+                    toutes les données proviennent d'API publiques.
+                </p>
+                
+                <h3 class="section-title">développeurs</h3>
+                <div class="developers-list">
+                    <a href="https://zone01normandie.org/git/gcouvri" target="_blank" class="developer-link">
+                        <div class="developer-card">
+                            <div class="developer-name">gcouvri</div>
+                            <div class="developer-role">étudiant ZONE01</div>
+                        </div>
+                    </a>
+                    
+                    <a href="https://zone01normandie.org/git/vbosson" target="_blank" class="developer-link">
+                        <div class="developer-card">
+                            <div class="developer-name">vbosson</div>
+                            <div class="developer-role">étudiant ZONE01</div>
+                        </div>
+                    </a>
+                    
+                    <a href="https://zone01normandie.org/git/kcamesel" target="_blank" class="developer-link">
+                        <div class="developer-card">
+                            <div class="developer-name">kcamesel</div>
+                            <div class="developer-role">étudiant ZONE01</div>
+                        </div>
+                    </a>
+                </div>
+                
+                <h3 class="section-title">technologies utilisées</h3>
+                <div class="technologies">
+                    <span class="tech-tag">HTML5</span>
+                    <span class="tech-tag">CSS3</span>
+                    <span class="tech-tag">JavaScript</span>
+                    <span class="tech-tag">Google Maps API</span>
+                    <span class="tech-tag">groupietrackers API</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Pied de page -->
+    <footer class="footer">
+        <div class="footer"></div>
+        <div class="footer-content">
+            <a href="https://zone01normandie.org/git/gcouvri" target="_blank">gcouvri</a>
+            <a href="https://zone01normandie.org/git/vbosson" target="_blank">vbosson</a>
+            <a href="https://zone01normandie.org/git/kcamesel" target="_blank">kcamesel</a>
+        </div>
+    </footer>
+
+    <!-- Script pour la redirection de recherche -->
+    <script>
+        // Récupérer les éléments de recherche
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        
+        // Fonction pour rediriger vers la page artistes
+        function handleSearch() {
+            const searchTerm = searchInput.value.trim();
+            if (searchTerm) {
+                window.location.href = `artists.html?search=${encodeURIComponent(searchTerm)}`;
+            }
+        }
+        
+        // Écouter le clic du bouton et la touche Entrée
+        searchBtn.addEventListener('click', handleSearch);
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
+    </script>
+git pull
+</body>
+</html>

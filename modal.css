@@ -1,0 +1,159 @@
+/* Modal Overlay */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+/* Modal Content */
+.modal-content {
+  background: #01c42c;
+  border-radius: 20px;
+  padding: 40px;
+  width: 90%;
+  max-width: 700px;
+  position: relative;
+  display: flex;
+  gap: 30px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 32px;
+  cursor: pointer;
+  font-weight: normal;
+  line-height: 1;
+}
+
+/* Modal Artist Image */
+.modal-artist-image {
+  width: 150px;
+  height: 150px;
+  background: linear-gradient(to bottom, #e8f4ff 0%, #d0e8ff 50%, #c8d890 70%, #a8b870 100%);
+  border-radius: 12px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.modal-artist-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Modal Details */
+.modal-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.modal-artist-name {
+  font-size: 56px;
+  text-transform: lowercase;
+  color: white;
+  font-weight: normal;
+  margin: 0;
+}
+
+.modal-artist-year {
+  font-size: 24px;
+  text-transform: lowercase;
+  color: white;
+  font-weight: normal;
+  margin: 0;
+}
+
+.modal-section-title {
+  font-size: 20px;
+  text-transform: lowercase;
+  color: white;
+  font-weight: normal;
+  margin: 10px 0 5px 0;
+}
+
+.modal-locations-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.modal-location {
+  font-size: 18px;
+  text-transform: lowercase;
+  color: white;
+  font-weight: normal;
+}
+
+.modal-members-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.modal-member {
+  font-size: 16px;
+  text-transform: lowercase;
+  color: white;
+  font-weight: normal;
+}
+
+.modal-map-btn {
+  align-self: flex-end;
+  background: white;
+  color: #1d1c1c;
+  border: none;
+  padding: 10px 30px;
+  font-size: 24px;
+  text-transform: lowercase;
+  font-family: "Adumu", sans-serif;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: normal;
+  transition: transform 0.2s;
+}
+
+.modal-map-btn:hover {
+  transform: scale(1.05);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-content {
+    flex-direction: column;
+    padding: 30px 20px;
+  }
+
+  .modal-artist-image {
+    width: 120px;
+    height: 120px;
+  }
+
+  .modal-artist-name {
+    font-size: 36px;
+  }
+
+  .modal-locations-grid,
+  .modal-members-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
