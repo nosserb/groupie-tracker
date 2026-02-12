@@ -123,6 +123,45 @@
                 <button class="filter-close" id="filterCloseBtn">&times;</button>
             </div>
             
+            <!-- Range filter: Creation Year -->
+            <div class="filter-section">
+                <h4>Année de création</h4>
+                <div class="filter-range">
+                    <div class="range-inputs">
+                        <input type="number" id="creationYearMin" class="range-input" placeholder="Min" min="1950" max="2030">
+                        <span class="range-dash">-</span>
+                        <input type="number" id="creationYearMax" class="range-input" placeholder="Max" min="1950" max="2030">
+                    </div>
+                    <div class="range-slider-container">
+                        <input type="range" id="creationYearMinSlider" class="range-slider" min="1950" max="2030" value="1950">
+                        <input type="range" id="creationYearMaxSlider" class="range-slider" min="1950" max="2030" value="2030">
+                    </div>
+                    <div class="range-display">
+                        <span id="creationYearDisplay">1950 - 2030</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Range filter: First Album Year -->
+            <div class="filter-section">
+                <h4>Date du premier album</h4>
+                <div class="filter-range">
+                    <div class="range-inputs">
+                        <input type="number" id="firstAlbumYearMin" class="range-input" placeholder="Min" min="1950" max="2030">
+                        <span class="range-dash">-</span>
+                        <input type="number" id="firstAlbumYearMax" class="range-input" placeholder="Max" min="1950" max="2030">
+                    </div>
+                    <div class="range-slider-container">
+                        <input type="range" id="firstAlbumYearMinSlider" class="range-slider" min="1950" max="2030" value="1950">
+                        <input type="range" id="firstAlbumYearMaxSlider" class="range-slider" min="1950" max="2030" value="2030">
+                    </div>
+                    <div class="range-display">
+                        <span id="firstAlbumYearDisplay">1950 - 2030</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Checkbox filter: Member Count -->
             <div class="filter-section">
                 <h4>Nombre de membres</h4>
                 <div class="filter-options" id="memberCountOptions">
@@ -136,28 +175,7 @@
                 </div>
             </div>
 
-            <div class="filter-section">
-                <h4>Année de création</h4>
-                <div class="filter-options" id="yearRangeOptions">
-                    <label><input type="checkbox" class="year-filter" value="1980-1990"> 1980-1990</label>
-                    <label><input type="checkbox" class="year-filter" value="1991-2000"> 1991-2000</label>
-                    <label><input type="checkbox" class="year-filter" value="2001-2010"> 2001-2010</label>
-                    <label><input type="checkbox" class="year-filter" value="2011-2020"> 2011-2020</label>
-                    <label><input type="checkbox" class="year-filter" value="2021-2030"> 2021-2030</label>
-                </div>
-            </div>
-
-            <div class="filter-section">
-                <h4>Date du premier album</h4>
-                <div class="filter-options" id="albumRangeOptions">
-                    <label><input type="checkbox" class="album-filter" value="1960-1980"> 1960-1980</label>
-                    <label><input type="checkbox" class="album-filter" value="1981-1995"> 1981-1995</label>
-                    <label><input type="checkbox" class="album-filter" value="1996-2005"> 1996-2005</label>
-                    <label><input type="checkbox" class="album-filter" value="2006-2015"> 2006-2015</label>
-                    <label><input type="checkbox" class="album-filter" value="2016-2025"> 2016-2025</label>
-                </div>
-            </div>
-
+            <!-- Checkbox filter: Concert Locations -->
             <div class="filter-section">
                 <h4>Lieux de concert</h4>
                 <div class="filter-options" id="locationOptions">
@@ -171,42 +189,87 @@
 
     <!-- Scripts JavaScript -->
     <script>
-        // Gestion du menu des filtres
+        // Elements
         const filterMenuBtn = document.getElementById('filterMenuBtn');
         const filterMenu = document.getElementById('filterMenu');
         const filterCloseBtn = document.getElementById('filterCloseBtn');
         const filterReset = document.getElementById('filterReset');
-        
-        // Ouvrir/fermer le menu
-        filterMenuBtn.addEventListener('click', function() {
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.querySelector('.search-btn');
+
+        // Range filter inputs and sliders
+        const creationYearMin = document.getElementById('creationYearMin');
+        const creationYearMax = document.getElementById('creationYearMax');
+        const creationYearMinSlider = document.getElementById('creationYearMinSlider');
+        const creationYearMaxSlider = document.getElementById('creationYearMaxSlider');
+        const creationYearDisplay = document.getElementById('creationYearDisplay');
+
+        const firstAlbumYearMin = document.getElementById('firstAlbumYearMin');
+        const firstAlbumYearMax = document.getElementById('firstAlbumYearMax');
+        const firstAlbumYearMinSlider = document.getElementById('firstAlbumYearMinSlider');
+        const firstAlbumYearMaxSlider = document.getElementById('firstAlbumYearMaxSlider');
+        const firstAlbumYearDisplay = document.getElementById('firstAlbumYearDisplay');
+
+        // Checkbox filters
+        const memberFilters = document.querySelectorAll('.member-filter');
+        const locationOptions = document.getElementById('locationOptions');
+        let locationFilters = [];
+
+        // Toggle filter menu
+        filterMenuBtn.addEventListener('click', () => {
             filterMenu.classList.toggle('active');
         });
-        
-        filterCloseBtn.addEventListener('click', function() {
+
+        filterCloseBtn.addEventListener('click', () => {
             filterMenu.classList.remove('active');
         });
-        
-        // Fermer le menu quand on clique dehors
-        document.addEventListener('click', function(e) {
+
+        document.addEventListener('click', (e) => {
             if (!e.target.closest('.filter-menu') && !e.target.closest('.menu-btn')) {
                 filterMenu.classList.remove('active');
             }
         });
-        
-        // Récupérer les filtres
-        const memberFilters = document.querySelectorAll('.member-filter');
-        const yearFilters = document.querySelectorAll('.year-filter');
-        const albumFilters = document.querySelectorAll('.album-filter');
-        let locationFilters = [];
-        
-        // Générer les filtres de localisation
+
+        // Setup range slider synchronization
+        function setupRangeSliders(minInput, maxInput, minSlider, maxSlider, displayEl) {
+            const syncInputs = () => {
+                let minVal = parseInt(minInput.value) || parseInt(minSlider.min);
+                let maxVal = parseInt(maxInput.value) || parseInt(maxSlider.max);
+
+                if (minVal > maxVal) minVal = maxVal;
+                if (maxVal < minVal) maxVal = minVal;
+
+                minInput.value = minVal;
+                maxInput.value = maxVal;
+                minSlider.value = minVal;
+                maxSlider.value = maxVal;
+                displayEl.textContent = `${minVal} - ${maxVal}`;
+
+                applyFilters();
+            };
+
+            minInput.addEventListener('change', syncInputs);
+            maxInput.addEventListener('change', syncInputs);
+            minSlider.addEventListener('input', () => {
+                minInput.value = minSlider.value;
+                syncInputs();
+            });
+            maxSlider.addEventListener('input', () => {
+                maxInput.value = maxSlider.value;
+                syncInputs();
+            });
+        }
+
+        setupRangeSliders(creationYearMin, creationYearMax, creationYearMinSlider, creationYearMaxSlider, creationYearDisplay);
+        setupRangeSliders(firstAlbumYearMin, firstAlbumYearMax, firstAlbumYearMinSlider, firstAlbumYearMaxSlider, firstAlbumYearDisplay);
+
+        // Generate location filters dynamically
         async function generateLocationFilters() {
             try {
                 const response = await fetch('/api/artists');
                 const artists = await response.json();
                 const locationMap = {};
-                
-                // Collecter toutes les localisations uniques avec leurs IDs
+
                 for (const artist of artists) {
                     try {
                         const artistResponse = await fetch(`/artist/${artist.id}`);
@@ -223,15 +286,10 @@
                         console.error(`Error fetching locations for artist ${artist.id}:`, e);
                     }
                 }
-                
-                // Stocker les localisations pour le cache
-                window.artistLocations = locationMap;
-                
-                // Trier et créer les filtres
+
                 const locations = Object.keys(locationMap).sort();
-                const locationContainer = document.getElementById('locationOptions');
-                locationContainer.innerHTML = '';
-                
+                locationOptions.innerHTML = '';
+
                 locations.forEach(loc => {
                     const label = document.createElement('label');
                     const input = document.createElement('input');
@@ -239,168 +297,131 @@
                     input.className = 'location-filter';
                     input.value = loc;
                     input.addEventListener('change', applyFilters);
-                    
+
                     label.appendChild(input);
                     label.appendChild(document.createTextNode(loc));
-                    locationContainer.appendChild(label);
+                    locationOptions.appendChild(label);
                 });
-                
+
                 locationFilters = document.querySelectorAll('.location-filter');
             } catch (error) {
                 console.error('Error generating location filters:', error);
             }
         }
-        
-        // Initialiser les filtres de localisation
+
         generateLocationFilters();
-        
-        // Ajouter les écouteurs d'événements
+
+        // Add event listeners to checkbox filters
         memberFilters.forEach(filter => {
             filter.addEventListener('change', applyFilters);
         });
-        yearFilters.forEach(filter => {
-            filter.addEventListener('change', applyFilters);
-        });
-        albumFilters.forEach(filter => {
-            filter.addEventListener('change', applyFilters);
-        });
-        
-        filterReset.addEventListener('click', function() {
-            memberFilters.forEach(filter => filter.checked = false);
-            yearFilters.forEach(filter => filter.checked = false);
-            albumFilters.forEach(filter => filter.checked = false);
-            locationFilters.forEach(filter => filter.checked = false);
-            applyFilters();
-        });
-        
-        // Fonction pour extraire l'année de la date du premier album
-        function getAlbumYear(albumDate) {
-            if (!albumDate) return null;
-            const parts = albumDate.split('-');
-            return parseInt(parts[parts.length - 1]); // Récupère la dernière partie (année)
-        }
-        
 
-        // Fonction pour appliquer les filtres
-        function applyFilters() {
-            const searchTerm = searchInput.value.toLowerCase();
+        // Apply filters function using backend API
+        async function applyFilters() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const creationDateMin = parseInt(creationYearMin.value) || 0;
+            const creationDateMax = parseInt(creationYearMax.value) || 9999;
+            const firstAlbumMin = parseInt(firstAlbumYearMin.value) || 0;
+            const firstAlbumMax = parseInt(firstAlbumYearMax.value) || 9999;
+
             const selectedMemberCounts = Array.from(memberFilters)
                 .filter(f => f.checked)
-                .map(f => parseInt(f.value));
-            const selectedYearRanges = Array.from(yearFilters)
-                .filter(f => f.checked)
-                .map(f => f.value);
-            const selectedAlbumRanges = Array.from(albumFilters)
-                .filter(f => f.checked)
-                .map(f => f.value);
+                .map(f => f.value)
+                .join(',');
+
             const selectedLocations = Array.from(locationFilters)
                 .filter(f => f.checked)
-                .map(f => f.value);
-            
-            const artistItems = document.querySelectorAll('.artist-item');
-            
-            artistItems.forEach(async item => {
-                const artistId = parseInt(item.getAttribute('data-artist-id'));
-                const artistName = item.getAttribute('data-artist-name').toLowerCase();
-                const memberCount = parseInt(item.getAttribute('data-member-count'));
-                const creationYear = parseInt(item.getAttribute('data-creation-year') || 0);
-                const firstAlbum = item.getAttribute('data-first-album');
-                const albumYear = getAlbumYear(firstAlbum);
+                .map(f => f.value)
+                .join(',');
+
+            try {
+                // Build query string
+                const params = new URLSearchParams();
+                if (creationDateMin > 0) params.append('creationDateMin', creationDateMin);
+                if (creationDateMax < 9999) params.append('creationDateMax', creationDateMax);
+                if (firstAlbumMin > 0) params.append('firstAlbumMin', firstAlbumMin);
+                if (firstAlbumMax < 9999) params.append('firstAlbumMax', firstAlbumMax);
+                if (selectedMemberCounts) params.append('memberCounts', selectedMemberCounts);
+                if (selectedLocations) params.append('locations', selectedLocations);
+
+                const response = await fetch(`/api/filter?${params.toString()}`);
+                if (!response.ok) throw new Error('Filter API error');
                 
-                // Récupérer les localisations de l'artiste
-                let locations = [];
-                try {
-                    const response = await fetch(`/artist/${artistId}`);
-                    const data = await response.json();
-                    locations = data.Locations || [];
-                } catch (e) {
-                    console.error(`Error fetching locations for artist ${artistId}:`, e);
-                }
-                
-                // Vérifier le filtre nom
-                const nameMatch = artistName.includes(searchTerm);
-                
-                // Vérifier le filtre nombre de membres
-                let memberMatch = true;
-                if (selectedMemberCounts.length > 0) {
-                    if (selectedMemberCounts.includes(7)) {
-                        memberMatch = selectedMemberCounts.some(count => 
-                            count === 7 ? memberCount >= 7 : memberCount === count
-                        );
-                    } else {
-                        memberMatch = selectedMemberCounts.includes(memberCount);
-                    }
-                }
-                
-                // Vérifier le filtre année
-                let yearMatch = true;
-                if (selectedYearRanges.length > 0) {
-                    yearMatch = selectedYearRanges.some(range => {
-                        const [start, end] = range.split('-').map(Number);
-                        return creationYear >= start && creationYear <= end;
+                const data = await response.json();
+                const filteredArtists = data.artists || [];
+
+                // Apply search term filtering
+                let matchingArtists = filteredArtists;
+                if (searchTerm) {
+                    matchingArtists = filteredArtists.filter(artist => {
+                        const nameMatch = artist.name.toLowerCase().includes(searchTerm);
+                        const memberMatch = artist.members.some(m => m.toLowerCase().includes(searchTerm));
+                        const yearMatch = artist.creationDate.toString().includes(searchTerm) || artist.firstAlbum.includes(searchTerm);
+                        return nameMatch || memberMatch || yearMatch;
                     });
                 }
-                
-                // Vérifier le filtre album
-                let albumMatch = true;
-                if (selectedAlbumRanges.length > 0 && albumYear) {
-                    albumMatch = selectedAlbumRanges.some(range => {
-                        const [start, end] = range.split('-').map(Number);
-                        return albumYear >= start && albumYear <= end;
-                    });
-                }
-                
-                // Vérifier le filtre localisation
-                let locationMatch = true;
-                if (selectedLocations.length > 0) {
-                    locationMatch = selectedLocations.some(selected => {
-                        return locations.some(loc => loc.includes(selected));
-                    });
-                }
-                
-                // Afficher ou cacher l'artiste
-                if (nameMatch && memberMatch && yearMatch && albumMatch && locationMatch) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
+
+                // Update display
+                const artistItems = document.querySelectorAll('.artist-item');
+                const matchingIds = new Set(matchingArtists.map(a => a.id));
+
+                artistItems.forEach(item => {
+                    const artistId = parseInt(item.getAttribute('data-artist-id'));
+                    item.style.display = matchingIds.has(artistId) ? '' : 'none';
+                });
+            } catch (error) {
+                console.error('Error applying filters:', error);
+            }
         }
-        
-        // Récupérer le paramètre de recherche depuis l'URL
+
+        // Initial filtering
         const urlParams = new URLSearchParams(window.location.search);
         const searchParam = urlParams.get('search');
-        
-        // Barre de recherche
-        const searchInput = document.getElementById('searchInput');
-        
-        // Si une recherche est dans l'URL, l'appliquer
         if (searchParam) {
             searchInput.value = searchParam;
             applyFilters();
         }
-        
-        searchInput.addEventListener('input', function(e) {
+
+        searchInput.addEventListener('input', applyFilters);
+
+        // Filter reset
+        filterReset.addEventListener('click', () => {
+            creationYearMin.value = 1950;
+            creationYearMax.value = 2030;
+            creationYearMinSlider.value = 1950;
+            creationYearMaxSlider.value = 2030;
+            creationYearDisplay.textContent = '1950 - 2030';
+
+            firstAlbumYearMin.value = 1950;
+            firstAlbumYearMax.value = 2030;
+            firstAlbumYearMinSlider.value = 1950;
+            firstAlbumYearMaxSlider.value = 2030;
+            firstAlbumYearDisplay.textContent = '1950 - 2030';
+
+            memberFilters.forEach(filter => filter.checked = false);
+            locationFilters.forEach(filter => filter.checked = false);
+            searchInput.value = '';
+
             applyFilters();
         });
-        
-        // Ouvrir la popup d'un artiste
+
+        // Open artist modal
         async function openArtistModal(artistId) {
             try {
                 const response = await fetch(`/artist/${artistId}`);
-                const data = await response.json();
+                if (!response.ok) throw new Error('Failed to fetch artist data');
                 
+                const data = await response.json();
+
                 const modal = document.getElementById('artistModal');
                 document.getElementById('modalArtistImg').src = data.Artist.image;
                 document.getElementById('modalArtistName').textContent = data.Artist.name;
                 document.getElementById('modalArtistYear').textContent = data.Artist.creationDate;
                 document.getElementById('modalFirstAlbum').textContent = data.Artist.firstAlbum;
-                
-                // Mettre à jour le lien map avec le nom de l'artiste
+
                 const artistName = encodeURIComponent(data.Artist.name);
                 document.getElementById('modalMapBtn').href = `map.html?artist=${artistName}`;
-                
-                // Remplir les localisations
+
                 const locationsContainer = document.getElementById('modalLocations');
                 locationsContainer.innerHTML = '';
                 if (data.Locations && data.Locations.length > 0) {
@@ -411,8 +432,7 @@
                         locationsContainer.appendChild(span);
                     });
                 }
-                
-                // Remplir les membres
+
                 const membersContainer = document.getElementById('modalMembers');
                 membersContainer.innerHTML = '';
                 if (data.Artist.members && data.Artist.members.length > 0) {
@@ -423,38 +443,37 @@
                         membersContainer.appendChild(span);
                     });
                 }
-                
+
                 modal.classList.add('active');
                 document.body.style.overflow = 'hidden';
             } catch (error) {
                 console.error('Error fetching artist data:', error);
+                alert('Erreur lors du chargement des données de l\'artiste');
             }
         }
 
-        // Fermer la popup
+        // Close artist modal
         function closeModal() {
             const modal = document.getElementById('artistModal');
             modal.classList.remove('active');
             document.body.style.overflow = 'auto';
         }
 
-        // Fermer la popup en cliquant dehors
-        document.getElementById('artistModal').addEventListener('click', function(e) {
-            if (e.target === this) {
+        document.getElementById('artistModal').addEventListener('click', (e) => {
+            if (e.target.id === 'artistModal') {
                 closeModal();
             }
         });
 
-        // Gestion de la recherche au clic du bouton
-        const searchBtn = document.querySelector('.search-btn');
-        searchBtn.addEventListener('click', function() {
+        // Search button
+        searchBtn.addEventListener('click', () => {
             const searchTerm = searchInput.value.trim();
             if (searchTerm) {
                 window.location.href = `artists.html?search=${encodeURIComponent(searchTerm)}`;
             }
         });
-        
-        searchInput.addEventListener('keypress', function(e) {
+
+        searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 const searchTerm = searchInput.value.trim();
                 if (searchTerm) {

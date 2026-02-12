@@ -28,7 +28,8 @@
                 </a>
                 <!-- Barre de recherche qui redirige vers artistes -->
                 <div class="search-bar">
-                    <input type="text" placeholder="" id="searchInput" class="page-search-input">
+                    <input type="text" placeholder="" id="searchInput" class="page-search-input" autocomplete="off">
+                    <div id="suggestions" class="suggestions-dropdown"></div>
                     <button class="search-btn" id="searchBtn">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                             <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor"/>
@@ -222,23 +223,84 @@
             }
         });
 
-        // Gestion de la recherche au clic du bouton
+        // Gestion de la recherche avec suggestions
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
+        const suggestionsDiv = document.getElementById('suggestions');
         
-        // Fonction pour rediriger vers la page artistes
-        function handleSearch() {
-            const searchTerm = searchInput.value.trim();
-            if (searchTerm) {
-                window.location.href = `artists.html?search=${encodeURIComponent(searchTerm)}`;
+        // Fonction pour afficher les suggestions
+        async function showSuggestions() {
+            const query = searchInput.value.trim();
+            if (query.length < 1) {
+                suggestionsDiv.innerHTML = '';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const results = await response.json();
+                
+                if (results && results.length > 0) {
+                    suggestionsDiv.innerHTML = results.map((result, index) => {
+                        const typeLabel = {
+                            'artist': '🎤',
+                            'member': '👤',
+                            'location': '📍',
+                            'creationDate': '📅',
+                            'firstAlbum': '💿'
+                        }[result.type] || '🔍';
+                        
+                        return `<div class="suggestion-item" data-index="${index}" data-type="${result.type}" data-value="${result.value}">
+                            <span class="suggestion-type">${typeLabel}</span>
+                            <span class="suggestion-text">${result.name}</span>
+                        </div>`;
+                    }).join('');
+                    
+                    // Add click handlers to suggestions
+                    document.querySelectorAll('.suggestion-item').forEach(item => {
+                        item.addEventListener('click', function() {
+                            handleSuggestionSelect(this.dataset.type, this.dataset.value);
+                        });
+                    });
+                } else {
+                    suggestionsDiv.innerHTML = '';
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                suggestionsDiv.innerHTML = '';
             }
         }
+
+        // Fonction pour gérer la sélection d'une suggestion
+        function handleSuggestionSelect(type, value) {
+            searchInput.value = value;
+            suggestionsDiv.innerHTML = '';
+            handleSearch(value);
+        }
+
+        // Fonction pour rediriger vers la page artistes
+        function handleSearch(searchTerm) {
+            const term = searchTerm || searchInput.value.trim();
+            if (term) {
+                window.location.href = `artists.html?search=${encodeURIComponent(term)}`;
+            }
+        }
+        
+        // Écouter les changements dans l'input pour afficher les suggestions
+        searchInput.addEventListener('input', showSuggestions);
         
         // Écouter le clic du bouton et la touche Entrée
         searchBtn.addEventListener('click', handleSearch);
         searchInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 handleSearch();
+            }
+        });
+        
+        // Fermer les suggestions si on clique ailleurs
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-bar')) {
+                suggestionsDiv.innerHTML = '';
             }
         });
     </script>

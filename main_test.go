@@ -244,3 +244,200 @@ func TestGeocodeHandler_MissingAddress(t *testing.T) {
 		t.Errorf("Handler should return 400 for missing address: got %v want %v", status, http.StatusBadRequest)
 	}
 }
+
+// TestExtractYear tests the extractYear function
+func TestExtractYear(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected int
+	}{
+		{"01-01-2020", 2020},
+		{"06-04-2009", 2009},
+		{"15-06-1985", 1985},
+		{"", 0},
+		{"invalid", 0},
+	}
+
+	for _, tc := range testCases {
+		result := extractYear(tc.input)
+		if result != tc.expected {
+			t.Errorf("extractYear(%s) = %d, want %d", tc.input, result, tc.expected)
+		}
+	}
+}
+
+// TestFilterArtists tests the filterArtists function
+func TestFilterArtists(t *testing.T) {
+	// Setup test data
+	artists = []Artist{
+		{
+			ID:           1,
+			Name:         "The Beatles",
+			CreationDate: 1960,
+			FirstAlbum:   "22-03-1963",
+			Members:      []string{"John", "Paul", "George", "Ringo"},
+		},
+		{
+			ID:           2,
+			Name:         "Queen",
+			CreationDate: 1970,
+			FirstAlbum:   "13-02-1973",
+			Members:      []string{"Freddie", "Brian", "Roger", "John"},
+		},
+		{
+			ID:           3,
+			Name:         "Pink Floyd",
+			CreationDate: 1965,
+			FirstAlbum:   "05-08-1967",
+			Members:      []string{"Syd", "Roger", "Rick", "David", "Nick"},
+		},
+	}
+
+	locations = []Location{
+		{
+			ID:        1,
+			Locations: []string{"London_England", "Liverpool_England"},
+		},
+		{
+			ID:        2,
+			Locations: []string{"London_England"},
+		},
+		{
+			ID:        3,
+			Locations: []string{"London_England", "Cambridge_England"},
+		},
+	}
+
+	testCases := []struct {
+		name             string
+		creationDateMin  int
+		creationDateMax  int
+		firstAlbumMin    int
+		firstAlbumMax    int
+		memberCounts     []int
+		filterLocations  []string
+		expectedCount    int
+		expectedArtistID int
+	}{
+		{
+			name:             "No filters - return all",
+			creationDateMin:  0,
+			creationDateMax:  9999,
+			firstAlbumMin:    0,
+			firstAlbumMax:    9999,
+			memberCounts:     []int{},
+			filterLocations:  []string{},
+			expectedCount:    3,
+			expectedArtistID: 0,
+		},
+		{
+			name:             "Filter by creation date range",
+			creationDateMin:  1960,
+			creationDateMax:  1969,
+			firstAlbumMin:    0,
+			firstAlbumMax:    9999,
+			memberCounts:     []int{},
+			filterLocations:  []string{},
+			expectedCount:    2,
+			expectedArtistID: 1,
+		},
+		{
+			name:             "Filter by member count",
+			creationDateMin:  0,
+			creationDateMax:  9999,
+			firstAlbumMin:    0,
+			firstAlbumMax:    9999,
+			memberCounts:     []int{4},
+			filterLocations:  []string{},
+			expectedCount:    2,
+			expectedArtistID: 1,
+		},
+		{
+			name:             "Filter by location",
+			creationDateMin:  0,
+			creationDateMax:  9999,
+			firstAlbumMin:    0,
+			firstAlbumMax:    9999,
+			memberCounts:     []int{},
+			filterLocations:  []string{"London"},
+			expectedCount:    3,
+			expectedArtistID: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := filterArtists(
+				tc.creationDateMin,
+				tc.creationDateMax,
+				tc.firstAlbumMin,
+				tc.firstAlbumMax,
+				tc.memberCounts,
+				tc.filterLocations,
+			)
+
+			if len(result) != tc.expectedCount {
+				t.Errorf("Expected %d artists, got %d", tc.expectedCount, len(result))
+			}
+
+			if tc.expectedCount > 0 && len(result) > 0 && tc.expectedArtistID > 0 {
+				if result[0].ID != tc.expectedArtistID {
+					t.Errorf("Expected first artist ID %d, got %d", tc.expectedArtistID, result[0].ID)
+				}
+			}
+		})
+	}
+}
+
+// TestFilterHandler tests the filter API handler
+func TestFilterHandler(t *testing.T) {
+	// Setup test data
+	artists = []Artist{
+		{
+			ID:           1,
+			Name:         "Test Band",
+			CreationDate: 2000,
+			FirstAlbum:   "01-01-2001",
+			Members:      []string{"Member 1", "Member 2"},
+		},
+	}
+	locations = []Location{
+		{
+			ID:        1,
+			Locations: []string{"Test_City"},
+		},
+	}
+
+	req, err := http.NewRequest("GET", "/api/filter?creationDateMin=1990&creationDateMax=2010", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(filterHandler)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	// Check Content-Type
+	contentType := rr.Header().Get("Content-Type")
+	if contentType != "application/json" {
+		t.Errorf("Expected Content-Type application/json, got %s", contentType)
+	}
+
+	// Verify JSON response
+	var result FilterResponse
+	if err := json.NewDecoder(rr.Body).Decode(&result); err != nil {
+		t.Errorf("Response is not valid JSON: %v", err)
+	}
+
+	if result.Total != 1 {
+		t.Errorf("Expected 1 artist in filter result, got %d", result.Total)
+	}
+
+	if len(result.Artists) != 1 {
+		t.Errorf("Expected 1 artist, got %d", len(result.Artists))
+	}
+}

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 // Artist structure containing band/artist information
@@ -60,6 +61,29 @@ type NominatimResponse struct {
 	Lon string `json:"lon"`
 }
 
+// SearchResult structure for search suggestions
+type SearchResult struct {
+	Type  string `json:"type"` // "artist", "member", "location", "creationDate", "firstAlbum"
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+// FilterRequest structure for filter API requests
+type FilterRequest struct {
+	CreationDateMin int      `json:"creationDateMin"`
+	CreationDateMax int      `json:"creationDateMax"`
+	FirstAlbumMin   int      `json:"firstAlbumMin"`
+	FirstAlbumMax   int      `json:"firstAlbumMax"`
+	MemberCounts    []int    `json:"memberCounts"`
+	Locations       []string `json:"locations"`
+}
+
+// FilterResponse structure for filter API responses
+type FilterResponse struct {
+	Artists []Artist `json:"artists"`
+	Total   int      `json:"total"`
+}
+
 // API response structures
 type LocationsIndex struct {
 	Index []Location `json:"index"`
@@ -94,6 +118,21 @@ const nominatimURL = "https://nominatim.openstreetmap.org/search"
 // Cache pour éviter les requêtes répétées
 var geocodeCache = make(map[string]Coordinate)
 
+// formatLocationName converts API location format (city-country) to readable format
+func formatLocationName(location string) string {
+	// Replace underscores with spaces
+	location = strings.ReplaceAll(location, "_", " ")
+	// Replace the last hyphen with a comma to separate city and country
+	parts := strings.Split(location, "-")
+	if len(parts) >= 2 {
+		// Join all parts except the last with hyphen, then add comma and last part (country)
+		city := strings.Join(parts[:len(parts)-1], "-")
+		country := parts[len(parts)-1]
+		return strings.TrimSpace(city) + ", " + strings.TrimSpace(country)
+	}
+	return location
+}
+
 func main() {
 	// Fetch data from API
 	if err := fetchAPIData(); err != nil {
@@ -127,6 +166,8 @@ func main() {
 	http.HandleFunc("/artist/", artistDetailHandler)
 	http.HandleFunc("/api/artists", apiArtistsHandler)
 	http.HandleFunc("/api/geocode", geocodeHandler)
+	http.HandleFunc("/api/search", searchHandler)
+	http.HandleFunc("/api/filter", filterHandler)
 	http.HandleFunc("/", indexHandler)
 
 	fmt.Println("Server is running on http://localhost:8080")
@@ -292,7 +333,7 @@ func artistDetailHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(data)
 }
 
-// API endpoint to get artists as JSON
+// API endpoint to get artists
 func apiArtistsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(artists)
@@ -303,13 +344,14 @@ func creditsHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "credits.html")
 }
 
-// Geocode handler - converts address to coordinates
+// Geocode handler
 func geocodeHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	address := r.URL.Query().Get("address")
 	if address == "" {
-		http.Error(w, `{"error":"address parameter required"}`, http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "address parameter required"})
 		return
 	}
 
@@ -319,11 +361,12 @@ func geocodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Query Nominatim API
+	// Nominatim API
 	coord, err := geocodeAddress(address)
 	if err != nil {
 		log.Printf("Geocoding error for %s: %v", address, err)
-		http.Error(w, `{"error":"geocoding failed"}`, http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "geocoding failed"})
 		return
 	}
 
@@ -332,11 +375,14 @@ func geocodeHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(coord)
 }
 
-// geocodeAddress converts an address to coordinates using Nominatim API
+// geocodeAddress converts coordinates API
 func geocodeAddress(address string) (Coordinate, error) {
+	// location string
+	formattedAddress := formatLocationName(address)
+
 	baseURL, _ := url.Parse(nominatimURL)
 	params := url.Values{}
-	params.Add("q", address)
+	params.Add("q", formattedAddress)
 	params.Add("format", "json")
 	params.Add("limit", "1")
 	baseURL.RawQuery = params.Encode()
@@ -351,6 +397,10 @@ func geocodeAddress(address string) (Coordinate, error) {
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
+	if err != nil {
+		return Coordinate{}, fmt.Errorf("API request failed: %w", err)
+	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return Coordinate{}, fmt.Errorf("API returned status %d", resp.StatusCode)
@@ -381,6 +431,255 @@ func geocodeAddress(address string) (Coordinate, error) {
 		Longitude: lon,
 		Address:   address,
 	}, nil
+}
+
+// Search handler
+func searchHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	query := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+	if query == "" {
+		json.NewEncoder(w).Encode([]SearchResult{})
+		return
+	}
+
+	results := []SearchResult{}
+	seen := make(map[string]bool)
+
+	// Search artists
+	for _, artist := range artists {
+		if strings.Contains(strings.ToLower(artist.Name), query) {
+			key := "artist:" + artist.Name
+			if !seen[key] {
+				results = append(results, SearchResult{
+					Type:  "artist",
+					Name:  artist.Name,
+					Value: artist.Name,
+				})
+				seen[key] = true
+			}
+		}
+	}
+
+	// Search members
+	for _, artist := range artists {
+		for _, member := range artist.Members {
+			if strings.Contains(strings.ToLower(member), query) {
+				key := "member:" + member
+				if !seen[key] {
+					results = append(results, SearchResult{
+						Type:  "member",
+						Name:  member,
+						Value: member,
+					})
+					seen[key] = true
+				}
+			}
+		}
+	}
+
+	// Search locations
+	for _, loc := range locations {
+		for _, location := range loc.Locations {
+			if strings.Contains(strings.ToLower(location), query) {
+				key := "location:" + location
+				if !seen[key] {
+					results = append(results, SearchResult{
+						Type:  "location",
+						Name:  formatLocationName(location),
+						Value: location,
+					})
+					seen[key] = true
+				}
+			}
+		}
+	}
+
+	// Search creation dates
+	for _, artist := range artists {
+		dateStr := strconv.Itoa(artist.CreationDate)
+		if strings.Contains(dateStr, query) {
+			key := "creationDate:" + dateStr
+			if !seen[key] {
+				results = append(results, SearchResult{
+					Type:  "creationDate",
+					Name:  dateStr,
+					Value: dateStr,
+				})
+				seen[key] = true
+			}
+		}
+	}
+
+	// Search first album dates
+	for _, artist := range artists {
+		if strings.Contains(artist.FirstAlbum, query) {
+			key := "firstAlbum:" + artist.FirstAlbum
+			if !seen[key] {
+				results = append(results, SearchResult{
+					Type:  "firstAlbum",
+					Name:  artist.FirstAlbum,
+					Value: artist.FirstAlbum,
+				})
+				seen[key] = true
+			}
+		}
+	}
+
+	// Limit results to 10
+	if len(results) > 10 {
+		results = results[:10]
+	}
+
+	json.NewEncoder(w).Encode(results)
+}
+
+// Filter handler for advanced filtering
+func filterHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Parse query parameters
+	creationDateMin := 0
+	creationDateMax := 9999
+	firstAlbumMin := 0
+	firstAlbumMax := 9999
+	memberCountsStr := r.URL.Query().Get("memberCounts")
+	locationsStr := r.URL.Query().Get("locations")
+
+	// Parse creation date range
+	if val := r.URL.Query().Get("creationDateMin"); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil {
+			creationDateMin = parsed
+		}
+	}
+	if val := r.URL.Query().Get("creationDateMax"); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil {
+			creationDateMax = parsed
+		}
+	}
+
+	// Parse first album date range
+	if val := r.URL.Query().Get("firstAlbumMin"); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil {
+			firstAlbumMin = parsed
+		}
+	}
+	if val := r.URL.Query().Get("firstAlbumMax"); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil {
+			firstAlbumMax = parsed
+		}
+	}
+
+	// Parse member counts filter
+	var memberCounts []int
+	if memberCountsStr != "" {
+		parts := strings.Split(memberCountsStr, ",")
+		for _, part := range parts {
+			if count, err := strconv.Atoi(strings.TrimSpace(part)); err == nil {
+				memberCounts = append(memberCounts, count)
+			}
+		}
+	}
+
+	// Parse locations filter
+	var filterLocations []string
+	if locationsStr != "" {
+		filterLocations = strings.Split(locationsStr, ",")
+		for i := range filterLocations {
+			filterLocations[i] = strings.TrimSpace(filterLocations[i])
+		}
+	}
+
+	// Filter artists
+	filteredArtists := filterArtists(
+		creationDateMin,
+		creationDateMax,
+		firstAlbumMin,
+		firstAlbumMax,
+		memberCounts,
+		filterLocations,
+	)
+
+	response := FilterResponse{
+		Artists: filteredArtists,
+		Total:   len(filteredArtists),
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// filterArtists applies all filters and returns matching artists
+func filterArtists(creationDateMin, creationDateMax, firstAlbumMin, firstAlbumMax int, memberCounts []int, filterLocations []string) []Artist {
+	var result []Artist
+
+	for i, artist := range artists {
+		// Check creation date range
+		if artist.CreationDate < creationDateMin || artist.CreationDate > creationDateMax {
+			continue
+		}
+
+		// Check first album year range
+		albumYear := extractYear(artist.FirstAlbum)
+		if albumYear < firstAlbumMin || albumYear > firstAlbumMax {
+			continue
+		}
+
+		// Check member count filter
+		if len(memberCounts) > 0 {
+			memberCount := len(artist.Members)
+			found := false
+			for _, count := range memberCounts {
+				if count == 7 && memberCount >= 7 {
+					found = true
+					break
+				} else if count == memberCount {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+
+		// Check locations filter
+		if len(filterLocations) > 0 {
+			artistLocs := []string{}
+			if i+1 <= len(locations) {
+				artistLocs = locations[i].Locations
+			}
+			found := false
+			for _, filterLoc := range filterLocations {
+				for _, artistLoc := range artistLocs {
+					if strings.Contains(strings.ToLower(artistLoc), strings.ToLower(filterLoc)) {
+						found = true
+						break
+					}
+				}
+				if found {
+					break
+				}
+			}
+			if !found && len(filterLocations) > 0 {
+				continue
+			}
+		}
+
+		result = append(result, artist)
+	}
+
+	return result
+}
+
+// extractYear extracts the year from a date string (e.g., "06-04-2009" -> 2009)
+func extractYear(dateStr string) int {
+	parts := strings.Split(dateStr, "-")
+	if len(parts) > 0 {
+		if year, err := strconv.Atoi(parts[len(parts)-1]); err == nil {
+			return year
+		}
+	}
+	return 0
 }
 
 // Map page handler

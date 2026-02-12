@@ -54,10 +54,10 @@
                     <h2>GROUPIE TRACKER</h2>
                     <p class="group-name">groupe</p>
                     <div class="locations-list">
-                        <div class="location-item">pays ville</div>
-                        <div class="location-item">pays ville</div>
-                        <div class="location-item">pays ville</div>
-                        <div class="location-item">pays ville</div>
+                        <div class="location-item">ville pays</div>
+                        <div class="location-item">ville pays</div>
+                        <div class="location-item">ville pays</div>
+                        <div class="location-item">ville pays</div>
                     </div>
                 </div>
             </div>
@@ -83,6 +83,22 @@
         let map;
         let markers = [];
         let currentArtistId = null;
+
+        // Format location name from API format (city-country) to readable format
+        function formatLocationName(location) {
+            // Replace underscores with spaces
+            let formatted = location.replace(/_/g, ' ');
+            // Split by hyphen and rejoin with proper formatting
+            const parts = formatted.split('-');
+            if (parts.length >= 2) {
+                const city = parts.slice(0, -1).join('-').trim();
+                const country = parts[parts.length - 1].trim();
+                // Capitalize first letter of each word
+                return city.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') + ', ' +
+                       country.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            }
+            return formatted;
+        }
 
         // Initialiser la carte Leaflet
         function initMap() {
@@ -141,6 +157,7 @@
                 for (const location of data.Locations) {
                     try {
                         const coord = await geocodeLocation(location);
+                        const displayName = formatLocationName(location);
                         
                         const marker = L.circleMarker(
                             [coord.latitude, coord.longitude],
@@ -152,7 +169,7 @@
                                 opacity: 1,
                                 fillOpacity: 0.8
                             }
-                        ).bindPopup(`<strong>${location}</strong>`).addTo(map);
+                        ).bindPopup(`<strong>${displayName}</strong>`).addTo(map);
                         
                         markers.push(marker);
                     } catch (error) {
@@ -195,7 +212,7 @@
             locations.forEach(location => {
                 const item = document.createElement('div');
                 item.className = 'location-item';
-                item.textContent = location;
+                item.textContent = formatLocationName(location);
                 list.appendChild(item);
             });
         }
@@ -206,7 +223,5 @@
             loadArtistFromUrl();
         });
     </script>
-    
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
 </body>
 </html>
